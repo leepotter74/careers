@@ -88,7 +88,8 @@ class BB_Recruitment_Manager {
             'includes/class-form-integration.php',
             'includes/class-application-notifications.php',
             'includes/class-user-profile.php',
-            'includes/class-simple-job-alerts.php'
+            'includes/class-simple-job-alerts.php',
+            'includes/class-email-template-manager.php'
         );
         
         foreach ($core_files as $file) {
@@ -168,13 +169,17 @@ class BB_Recruitment_Manager {
         if (class_exists('BB_Simple_Job_Alerts')) {
             BB_Simple_Job_Alerts::get_instance();
         }
-        
-        
+
+        // Initialize email template manager
+        if (class_exists('BB_Email_Template_Manager')) {
+            BB_Email_Template_Manager::get_instance();
+        }
+
         // Initialize admin functionality
         if (is_admin() && class_exists('BB_Recruitment_Admin')) {
             BB_Recruitment_Admin::get_instance();
         }
-        
+
     }
     
     /**

@@ -9,42 +9,67 @@ if (!defined('ABSPATH')) {
 
 // Handle form submission
 if ($_POST && wp_verify_nonce($_POST['bb_recruitment_settings_nonce'] ?? '', 'bb_recruitment_settings')) {
+    // Email branding settings
+    update_option('bb_recruitment_sender_name', sanitize_text_field($_POST['bb_recruitment_sender_name'] ?? 'HR Team'));
+    update_option('bb_recruitment_sender_email', sanitize_email($_POST['bb_recruitment_sender_email'] ?? ''));
+    update_option('bb_recruitment_bcc_email', sanitize_email($_POST['bb_recruitment_bcc_email'] ?? ''));
+    update_option('bb_recruitment_email_footer', wp_kses_post($_POST['bb_recruitment_email_footer'] ?? ''));
+
+    // Email templates
+    if (isset($_POST['email_templates']) && is_array($_POST['email_templates'])) {
+        $templates = array();
+        foreach ($_POST['email_templates'] as $key => $template) {
+            $templates[sanitize_key($key)] = array(
+                'subject' => sanitize_text_field($template['subject'] ?? ''),
+                'body' => wp_kses_post($template['body'] ?? ''),
+                'enabled' => isset($template['enabled']) ? true : false
+            );
+        }
+        update_option('bb_recruitment_email_templates', $templates);
+    }
+
     // Email notifications
     update_option('bb_recruitment_email_notifications', intval($_POST['email_notifications'] ?? 0));
     update_option('bb_recruitment_notification_emails', array_map('sanitize_email', array_filter(explode("\n", $_POST['notification_emails'] ?? ''))));
-    
+
     // Application settings
     update_option('bb_recruitment_allow_guest_applications', intval($_POST['allow_guest_applications'] ?? 0));
     update_option('bb_recruitment_save_return_enabled', intval($_POST['save_return_enabled'] ?? 0));
     update_option('bb_recruitment_auto_expire_jobs', intval($_POST['auto_expire_jobs'] ?? 0));
-    
+    update_option('bb_recruitment_prevent_duplicate_applications', intval($_POST['prevent_duplicate_applications'] ?? 0));
+    update_option('bb_recruitment_application_limit_per_job', intval($_POST['application_limit_per_job'] ?? 0));
+
     // Social sharing
     update_option('bb_recruitment_social_sharing', intval($_POST['social_sharing'] ?? 0));
     update_option('bb_recruitment_twitter_handle', sanitize_text_field($_POST['twitter_handle'] ?? ''));
-    
+
     // Application fields
     $application_fields = array();
     $field_names = array('name', 'email', 'phone', 'cover_letter', 'experience', 'availability', 'cv_upload');
-    
+
     foreach ($field_names as $field) {
         $application_fields[$field] = array(
             'enabled' => isset($_POST['fields'][$field]['enabled']) ? 1 : 0,
             'required' => isset($_POST['fields'][$field]['required']) ? 1 : 0
         );
     }
-    
+
     update_option('bb_recruitment_application_fields', $application_fields);
-    
+
+    // Form customization
+    update_option('bb_recruitment_success_message', wp_kses_post($_POST['bb_recruitment_success_message'] ?? ''));
+    update_option('bb_recruitment_success_redirect_url', esc_url_raw($_POST['bb_recruitment_success_redirect_url'] ?? ''));
+
     // Page settings
     update_option('bb_recruitment_jobs_page_id', intval($_POST['jobs_page_id'] ?? 0));
     update_option('bb_recruitment_privacy_policy_url', esc_url_raw($_POST['privacy_policy_url'] ?? ''));
-    
+
     // Data retention
     update_option('bb_recruitment_data_retention_days', intval($_POST['data_retention_days'] ?? 365));
-    
+
     // Mark setup as complete
     update_option('bb_recruitment_setup_complete', true);
-    
+
     echo '<div class="notice notice-success"><p>' . __('Settings saved successfully.', 'big-bundle') . '</p></div>';
 }
 
@@ -89,6 +114,7 @@ foreach ($default_fields as $field => $defaults) {
             <nav class="bb-tab-nav">
                 <a href="#general" class="bb-tab-link active"><?php _e('General', 'big-bundle'); ?></a>
                 <a href="#applications" class="bb-tab-link"><?php _e('Applications', 'big-bundle'); ?></a>
+                <a href="#email-templates" class="bb-tab-link"><?php _e('Email Templates', 'big-bundle'); ?></a>
                 <a href="#notifications" class="bb-tab-link"><?php _e('Notifications', 'big-bundle'); ?></a>
                 <a href="#social" class="bb-tab-link"><?php _e('Social Sharing', 'big-bundle'); ?></a>
                 <a href="#privacy" class="bb-tab-link"><?php _e('Privacy', 'big-bundle'); ?></a>
@@ -168,6 +194,60 @@ foreach ($default_fields as $field => $defaults) {
                             </label>
                             <p class="description">
                                 <?php _e('Allows applicants to save their progress and complete applications later.', 'big-bundle'); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"><?php _e('Prevent Duplicate Applications', 'big-bundle'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="prevent_duplicate_applications" value="1"
+                                       <?php checked(get_option('bb_recruitment_prevent_duplicate_applications', 0), 1); ?> />
+                                <?php _e('Prevent same person from applying twice to the same job', 'big-bundle'); ?>
+                            </label>
+                            <p class="description">
+                                <?php _e('Checks email address to detect duplicate applications for the same job posting.', 'big-bundle'); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"><?php _e('Application Limit Per Job', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="number" name="application_limit_per_job"
+                                   value="<?php echo esc_attr(get_option('bb_recruitment_application_limit_per_job', 0)); ?>"
+                                   min="0" max="10000" style="width: 100px;" />
+                            <p class="description">
+                                <?php _e('Maximum number of applications allowed per job (0 = unlimited). Job will automatically close when limit is reached.', 'big-bundle'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3><?php _e('Form Customization', 'big-bundle'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Success Message', 'big-bundle'); ?></th>
+                        <td>
+                            <textarea name="bb_recruitment_success_message" rows="4" class="large-text"><?php
+                                echo esc_textarea(get_option('bb_recruitment_success_message',
+                                    'Thank you for your application! We have received your submission and will review it shortly.'));
+                            ?></textarea>
+                            <p class="description">
+                                <?php _e('Message shown to applicants after successful submission', 'big-bundle'); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"><?php _e('Success Redirect URL', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="url" name="bb_recruitment_success_redirect_url"
+                                   value="<?php echo esc_attr(get_option('bb_recruitment_success_redirect_url', '')); ?>"
+                                   class="regular-text" placeholder="https://" />
+                            <p class="description">
+                                <?php _e('Optional: Redirect applicants to this URL after submission (leave blank to show success message only)', 'big-bundle'); ?>
                             </p>
                         </td>
                     </tr>
@@ -276,7 +356,136 @@ foreach ($default_fields as $field => $defaults) {
                     </tbody>
                 </table>
             </div>
-            
+
+            <!-- Email Templates Settings -->
+            <div id="email-templates" class="bb-tab-content">
+                <h2><?php _e('Email Templates', 'big-bundle'); ?></h2>
+                <p class="description"><?php _e('Customize the email messages sent to applicants at different stages of the recruitment process.', 'big-bundle'); ?></p>
+
+                <?php
+                $template_manager = BB_Email_Template_Manager::get_instance();
+                $all_templates = $template_manager->get_all_templates();
+                $template_variables = $template_manager->get_template_variables();
+                $saved_templates = get_option('bb_recruitment_email_templates', array());
+                ?>
+
+                <!-- Email Branding Settings -->
+                <h3><?php _e('Email Branding', 'big-bundle'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Sender Name', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="text" name="bb_recruitment_sender_name"
+                                   value="<?php echo esc_attr(get_option('bb_recruitment_sender_name', 'HR Team')); ?>"
+                                   class="regular-text" />
+                            <p class="description"><?php _e('Name that appears in "From" field of emails', 'big-bundle'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('Sender Email', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="email" name="bb_recruitment_sender_email"
+                                   value="<?php echo esc_attr(get_option('bb_recruitment_sender_email', get_option('admin_email'))); ?>"
+                                   class="regular-text" />
+                            <p class="description"><?php _e('Email address used to send notifications', 'big-bundle'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('BCC Email (Compliance)', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="email" name="bb_recruitment_bcc_email"
+                                   value="<?php echo esc_attr(get_option('bb_recruitment_bcc_email', '')); ?>"
+                                   class="regular-text" />
+                            <p class="description"><?php _e('Send blind copy of all emails to this address for compliance/record-keeping', 'big-bundle'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('Email Footer', 'big-bundle'); ?></th>
+                        <td>
+                            <textarea name="bb_recruitment_email_footer" rows="4" class="large-text"><?php
+                                echo esc_textarea(get_option('bb_recruitment_email_footer', ''));
+                            ?></textarea>
+                            <p class="description"><?php _e('Custom footer text added to all emails (e.g., company address, unsubscribe info)', 'big-bundle'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr style="margin: 30px 0;">
+
+                <!-- Template Variables Reference -->
+                <div class="bb-template-variables-box">
+                    <h4><?php _e('Available Template Variables', 'big-bundle'); ?></h4>
+                    <p class="description"><?php _e('Use these variables in your subject and body - they will be replaced with actual values:', 'big-bundle'); ?></p>
+                    <div class="bb-variables-grid">
+                        <?php foreach ($template_variables as $var => $desc): ?>
+                            <div class="bb-variable-item">
+                                <code><?php echo esc_html($var); ?></code>
+                                <span><?php echo esc_html($desc); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <hr style="margin: 30px 0;">
+
+                <!-- Email Templates -->
+                <h3><?php _e('Email Templates', 'big-bundle'); ?></h3>
+
+                <div class="bb-email-templates-container">
+                    <?php foreach ($all_templates as $template_key => $template_label): ?>
+                        <?php
+                        $template = $template_manager->get_template($template_key);
+                        $is_custom = isset($saved_templates[$template_key]);
+                        ?>
+
+                        <div class="bb-email-template-editor" data-template-key="<?php echo esc_attr($template_key); ?>">
+                            <div class="bb-template-header">
+                                <h4>
+                                    <?php echo esc_html($template_label); ?>
+                                    <?php if ($is_custom): ?>
+                                        <span class="bb-custom-badge"><?php _e('Customized', 'big-bundle'); ?></span>
+                                    <?php endif; ?>
+                                </h4>
+                                <div class="bb-template-actions">
+                                    <button type="button" class="button bb-preview-template" data-template-key="<?php echo esc_attr($template_key); ?>">
+                                        <?php _e('Preview', 'big-bundle'); ?>
+                                    </button>
+                                    <button type="button" class="button bb-test-email" data-template-key="<?php echo esc_attr($template_key); ?>">
+                                        <?php _e('Send Test', 'big-bundle'); ?>
+                                    </button>
+                                    <?php if ($is_custom): ?>
+                                        <button type="button" class="button bb-reset-template" data-template-key="<?php echo esc_attr($template_key); ?>">
+                                            <?php _e('Reset to Default', 'big-bundle'); ?>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="bb-template-fields">
+                                <label>
+                                    <input type="checkbox" name="email_templates[<?php echo esc_attr($template_key); ?>][enabled]" value="1"
+                                           <?php checked($template['enabled'], true); ?> />
+                                    <?php _e('Enable this email template', 'big-bundle'); ?>
+                                </label>
+
+                                <div class="bb-template-field">
+                                    <label><?php _e('Subject Line', 'big-bundle'); ?></label>
+                                    <input type="text" name="email_templates[<?php echo esc_attr($template_key); ?>][subject]"
+                                           value="<?php echo esc_attr($template['subject']); ?>"
+                                           class="large-text bb-template-subject" />
+                                </div>
+
+                                <div class="bb-template-field">
+                                    <label><?php _e('Email Body', 'big-bundle'); ?></label>
+                                    <textarea name="email_templates[<?php echo esc_attr($template_key); ?>][body]"
+                                              rows="10" class="large-text bb-template-body"><?php echo esc_textarea($template['body']); ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
             <!-- Notification Settings -->
             <div id="notifications" class="bb-tab-content">
                 <h2><?php _e('Email Notification Settings', 'big-bundle'); ?></h2>
@@ -456,6 +665,90 @@ jQuery(document).ready(function($) {
             $required.prop('disabled', false);
         }
     }).trigger('change');
+
+    // Email template preview
+    $('.bb-preview-template').on('click', function() {
+        const $editor = $(this).closest('.bb-email-template-editor');
+        const subject = $editor.find('.bb-template-subject').val();
+        const body = $editor.find('.bb-template-body').val();
+
+        $.post(ajaxurl, {
+            action: 'bb_preview_email_template',
+            nonce: '<?php echo wp_create_nonce('bb_recruitment_nonce'); ?>',
+            subject: subject,
+            body: body
+        }, function(response) {
+            if (response.success) {
+                const modal = $('<div class="bb-modal-overlay">' +
+                    '<div class="bb-modal-content">' +
+                    '<div class="bb-modal-header">' +
+                    '<h3><?php _e('Email Preview', 'big-bundle'); ?></h3>' +
+                    '<span class="bb-modal-close">&times;</span>' +
+                    '</div>' +
+                    '<div class="bb-modal-body">' +
+                    '<div class="bb-preview-section">' +
+                    '<strong><?php _e('Subject:', 'big-bundle'); ?></strong> ' + response.data.subject +
+                    '</div>' +
+                    '<div class="bb-preview-section">' +
+                    '<strong><?php _e('Body:', 'big-bundle'); ?></strong><br>' +
+                    '<div class="bb-preview-body">' + response.data.body + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>');
+
+                $('body').append(modal);
+                modal.fadeIn(200);
+
+                modal.find('.bb-modal-close, .bb-modal-overlay').on('click', function(e) {
+                    if (e.target === this) {
+                        modal.fadeOut(200, function() { $(this).remove(); });
+                    }
+                });
+            } else {
+                alert('<?php _e('Failed to generate preview', 'big-bundle'); ?>');
+            }
+        });
+    });
+
+    // Send test email
+    $('.bb-test-email').on('click', function() {
+        const templateKey = $(this).data('template-key');
+        const testEmail = prompt('<?php _e('Enter email address to send test to:', 'big-bundle'); ?>', '<?php echo esc_js(wp_get_current_user()->user_email); ?>');
+
+        if (!testEmail) return;
+
+        $(this).prop('disabled', true).text('<?php _e('Sending...', 'big-bundle'); ?>');
+
+        const $btn = $(this);
+
+        $.post(ajaxurl, {
+            action: 'bb_send_test_email',
+            nonce: '<?php echo wp_create_nonce('bb_recruitment_nonce'); ?>',
+            template_key: templateKey,
+            test_email: testEmail
+        }, function(response) {
+            if (response.success) {
+                alert('<?php _e('Test email sent successfully!', 'big-bundle'); ?>');
+            } else {
+                alert('<?php _e('Failed to send test email:', 'big-bundle'); ?> ' + (response.data || ''));
+            }
+            $btn.prop('disabled', false).text('<?php _e('Send Test', 'big-bundle'); ?>');
+        });
+    });
+
+    // Reset template to default
+    $('.bb-reset-template').on('click', function() {
+        if (!confirm('<?php _e('Reset this template to default? Your custom changes will be lost.', 'big-bundle'); ?>')) {
+            return;
+        }
+
+        const templateKey = $(this).data('template-key');
+        $(this).closest('.bb-email-template-editor').find('input[type="checkbox"]').prop('checked', true);
+
+        // Template will reset on save - just reload for now
+        location.reload();
+    });
 });
 </script>
 
@@ -603,6 +896,176 @@ jQuery(document).ready(function($) {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+/* Email Templates */
+.bb-template-variables-box {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    border-left: 4px solid #0073aa;
+    margin-bottom: 30px;
+}
+
+.bb-variables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.bb-variable-item {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.bb-variable-item code {
+    background: #0073aa;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.bb-variable-item span {
+    font-size: 13px;
+    color: #666;
+}
+
+.bb-email-templates-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bb-email-template-editor {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.bb-template-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bb-template-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bb-custom-badge {
+    background: #0073aa;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.bb-template-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.bb-template-fields {
+    padding: 20px;
+}
+
+.bb-template-field {
+    margin-top: 15px;
+}
+
+.bb-template-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.bb-template-body {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+/* Modal */
+.bb-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.bb-modal-content {
+    background: white;
+    border-radius: 5px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.bb-modal-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bb-modal-header h3 {
+    margin: 0;
+}
+
+.bb-modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+    line-height: 1;
+}
+
+.bb-modal-close:hover {
+    color: #333;
+}
+
+.bb-modal-body {
+    padding: 20px;
+}
+
+.bb-preview-section {
+    margin-bottom: 20px;
+}
+
+.bb-preview-body {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 3px;
+    border-left: 4px solid #0073aa;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    line-height: 1.6;
 }
 
 /* Responsive */

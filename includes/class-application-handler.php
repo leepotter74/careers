@@ -630,13 +630,30 @@ class Application_Handler {
      */
     private function send_status_update_email($application_id, $new_status) {
         $application = $this->get_application($application_id);
-        
+
         if (!$application) {
             return false;
         }
-        
+
+        // Use email template manager if available
+        if (class_exists('BB_Email_Template_Manager')) {
+            $template_manager = BB_Email_Template_Manager::get_instance();
+
+            $data = array(
+                'applicant_name' => $application->applicant_name,
+                'applicant_email' => $application->applicant_email,
+                'job_title' => get_the_title($application->job_id),
+                'job_url' => get_permalink($application->job_id),
+                'status' => ucfirst(str_replace('_', ' ', $new_status)),
+                'application_id' => $application_id
+            );
+
+            return $template_manager->send_email($new_status, $application->applicant_email, $data);
+        }
+
+        // Fallback to legacy email (for backwards compatibility)
         $job_title = get_the_title($application->job_id);
-        
+
         $status_messages = array(
             'under_review' => __('Your application is now under review.', 'big-bundle'),
             'shortlisted' => __('Congratulations! You have been shortlisted for this position.', 'big-bundle'),
@@ -646,11 +663,11 @@ class Application_Handler {
             'rejected' => __('Thank you for your application. Unfortunately, you have not been successful on this occasion.', 'big-bundle'),
             'withdrawn' => __('Your application has been withdrawn as requested.', 'big-bundle')
         );
-        
+
         $status_message = $status_messages[$new_status] ?? __('Your application status has been updated.', 'big-bundle');
-        
+
         $subject = sprintf(__('Application Update - %s', 'big-bundle'), $job_title);
-        
+
         $message = sprintf(
             __("Dear %s,\n\n%s\n\nPosition: %s\nStatus: %s\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nHR Team", 'big-bundle'),
             $application->applicant_name,
@@ -658,7 +675,7 @@ class Application_Handler {
             $job_title,
             ucfirst(str_replace('_', ' ', $new_status))
         );
-        
+
         return wp_mail($application->applicant_email, $subject, $message);
     }
 }
