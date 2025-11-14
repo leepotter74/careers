@@ -696,7 +696,7 @@ class BB_Application_Manager {
             wp_enqueue_script('bb-application-manager', BB_RECRUITMENT_MANAGER_PLUGIN_URL . 'admin/applications-script.js', array('jquery'), BB_RECRUITMENT_MANAGER_VERSION, true);
             wp_localize_script('bb-application-manager', 'bbAppManager', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('update_application_status'),
+                'nonce' => wp_create_nonce('bb_recruitment_nonce'),
                 'confirm_delete' => __('Are you sure you want to delete the selected applications?', 'recruitment-manager'),
                 'confirm_status' => __('Are you sure you want to update the status of selected applications?', 'recruitment-manager')
             ));

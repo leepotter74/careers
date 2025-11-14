@@ -180,18 +180,18 @@ class BB_Recruitment_Admin {
         ?>
         <div class="wrap">
             <h1><?php _e('Form Setup Guide', 'recruitment-manager'); ?></h1>
-            <?php include BB_RECRUITMENT_PLUGIN_DIR . 'admin/form-setup-guide.php'; ?>
+            <?php include BB_RECRUITMENT_MANAGER_PLUGIN_DIR . 'admin/form-setup-guide.php'; ?>
         </div>
         <?php
     }
-    
-    
+
+
     /**
      * Enqueue admin scripts
      */
     public function enqueue_admin_scripts($hook) {
         if (strpos($hook, 'bb-recruitment') !== false) {
-            wp_enqueue_style('bb-recruitment-admin', BB_RECRUITMENT_PLUGIN_URL . 'assets/css/admin-style.css', array(), BB_RECRUITMENT_VERSION);
+            wp_enqueue_style('bb-recruitment-admin', BB_RECRUITMENT_MANAGER_PLUGIN_URL . 'assets/css/admin-style.css', array(), BB_RECRUITMENT_MANAGER_VERSION);
         }
     }
     
