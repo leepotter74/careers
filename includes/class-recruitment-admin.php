@@ -123,54 +123,8 @@ class BB_Recruitment_Admin {
      * Settings page
      */
     public function settings_page() {
-        // Handle form submission
-        if (isset($_POST['submit']) && wp_verify_nonce($_POST['bb_recruitment_settings_nonce'], 'bb_recruitment_settings')) {
-            $this->save_settings();
-        }
-        
-        ?>
-        <div class="wrap">
-            <h1><?php _e('Recruitment Settings', 'recruitment-manager'); ?></h1>
-            
-            <form method="post" action="">
-                <?php wp_nonce_field('bb_recruitment_settings', 'bb_recruitment_settings_nonce'); ?>
-                
-                <?php
-                // Display notification settings if class exists
-                if (class_exists('BB_Application_Notifications')) {
-                    $notifications = BB_Application_Notifications::get_instance();
-                    $notifications->render_notification_settings();
-                }
-                ?>
-                
-                <?php submit_button(); ?>
-            </form>
-        </div>
-        <?php
-    }
-    
-    /**
-     * Save settings
-     */
-    private function save_settings() {
-        // Save notification settings
-        if (isset($_POST['bb_recruitment_enable_notifications'])) {
-            update_option('bb_recruitment_enable_notifications', true);
-        } else {
-            update_option('bb_recruitment_enable_notifications', false);
-        }
-        
-        if (isset($_POST['bb_recruitment_notification_email'])) {
-            $email = sanitize_email($_POST['bb_recruitment_notification_email']);
-            if (is_email($email)) {
-                update_option('bb_recruitment_notification_email', $email);
-            }
-        }
-        
-        // Show success message
-        add_action('admin_notices', function() {
-            echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully.', 'recruitment-manager') . '</p></div>';
-        });
+        // Load the comprehensive settings page
+        include BB_RECRUITMENT_MANAGER_PLUGIN_DIR . 'admin/settings-page.php';
     }
     
     /**
