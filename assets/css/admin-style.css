@@ -1,0 +1,565 @@
+/**
+ * Recruitment Manager Admin Styles
+ */
+
+/* General Admin Styles */
+.bb-recruitment-dashboard,
+.bb-applications-page,
+.bb-recruitment-settings {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Dashboard Components */
+.bb-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.bb-dashboard-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e1e1e1;
+}
+
+.bb-dashboard-section h2 {
+    margin-top: 0;
+    color: #23282d;
+    font-size: 18px;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+/* Status Badges */
+.bb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+    min-width: 60px;
+}
+
+.bb-status-submitted { background-color: #3498db; }
+.bb-status-under_review { background-color: #f39c12; }
+.bb-status-shortlisted { background-color: #27ae60; }
+.bb-status-interviewed { background-color: #9b59b6; }
+.bb-status-offered { background-color: #16a085; }
+.bb-status-hired { background-color: #2ecc71; }
+.bb-status-rejected { background-color: #e74c3c; }
+.bb-status-withdrawn { background-color: #95a5a6; }
+.bb-status-draft { background-color: #bdc3c7; }
+
+/* Forms */
+.bb-form-row {
+    margin-bottom: 15px;
+}
+
+.bb-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #23282d;
+}
+
+.bb-form-row input[type="text"],
+.bb-form-row input[type="email"],
+.bb-form-row input[type="tel"],
+.bb-form-row input[type="url"],
+.bb-form-row input[type="number"],
+.bb-form-row textarea,
+.bb-form-row select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.bb-form-row input:focus,
+.bb-form-row textarea:focus,
+.bb-form-row select:focus {
+    border-color: #0073aa;
+    outline: none;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+.bb-form-row .description {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Buttons */
+.bb-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.bb-btn-primary {
+    background: #0073aa;
+    color: white;
+    border-color: #005177;
+}
+
+.bb-btn-primary:hover {
+    background: #005177;
+    color: white;
+}
+
+.bb-btn-secondary {
+    background: #f7f7f7;
+    color: #555;
+    border-color: #ccc;
+}
+
+.bb-btn-secondary:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.bb-btn-outline {
+    background: transparent;
+    color: #0073aa;
+    border-color: #0073aa;
+}
+
+.bb-btn-outline:hover {
+    background: #0073aa;
+    color: white;
+}
+
+/* Tables */
+.bb-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bb-table th,
+.bb-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.bb-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.bb-table tr:hover {
+    background: #f8f9fa;
+}
+
+/* Modal Styles */
+.bb-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100000;
+    display: none;
+}
+
+.bb-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.bb-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.bb-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e1e1e1;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.bb-modal-header h2 {
+    margin: 0;
+    color: #23282d;
+}
+
+.bb-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    color: #666;
+    line-height: 1;
+}
+
+.bb-modal-close:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.bb-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.bb-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e1e1e1;
+    background: #f8f9fa;
+    text-align: right;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Loading States */
+.bb-loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.bb-loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: bb-spin 1s linear infinite;
+    z-index: 1000;
+}
+
+@keyframes bb-spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Notifications */
+.bb-notice {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 15px 0;
+    border-left: 4px solid #ddd;
+}
+
+.bb-notice-success {
+    background: #d4edda;
+    color: #155724;
+    border-left-color: #28a745;
+}
+
+.bb-notice-error {
+    background: #f8d7da;
+    color: #721c24;
+    border-left-color: #dc3545;
+}
+
+.bb-notice-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
+}
+
+.bb-notice-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-left-color: #17a2b8;
+}
+
+/* Pagination */
+.bb-pagination {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.bb-pagination ul {
+    display: inline-flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 5px;
+}
+
+.bb-pagination li {
+    margin: 0;
+}
+
+.bb-pagination a,
+.bb-pagination span {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #0073aa;
+    transition: all 0.2s ease;
+}
+
+.bb-pagination a:hover {
+    background: #0073aa;
+    color: white;
+    border-color: #0073aa;
+}
+
+.bb-pagination .current {
+    background: #0073aa;
+    color: white;
+    border-color: #0073aa;
+}
+
+/* Responsive Design */
+@media (max-width: 782px) {
+    .bb-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bb-modal-content {
+        width: 95%;
+        margin: 20px;
+        max-height: calc(100% - 40px);
+    }
+    
+    .bb-modal-header,
+    .bb-modal-body,
+    .bb-modal-footer {
+        padding: 15px;
+    }
+    
+    .bb-table {
+        font-size: 14px;
+    }
+    
+    .bb-table th,
+    .bb-table td {
+        padding: 8px;
+    }
+    
+    .bb-btn {
+        padding: 10px 16px;
+        font-size: 16px;
+    }
+}
+
+/* WordPress Admin Overrides */
+.bb-recruitment-dashboard .wrap,
+.bb-applications-page .wrap,
+.bb-recruitment-settings .wrap {
+    margin-right: 0;
+}
+
+/* Hide WordPress admin notices on our pages */
+.bb-recruitment-dashboard .notice:not(.bb-notice),
+.bb-applications-page .notice:not(.bb-notice),
+.bb-recruitment-settings .notice:not(.bb-notice) {
+    display: none !important;
+}
+
+/* Job Post Type Admin Columns */
+.column-applications {
+    width: 80px;
+    text-align: center;
+}
+
+.column-closing_date {
+    width: 100px;
+}
+
+.column-job_type {
+    width: 100px;
+}
+
+.column-job_location {
+    width: 120px;
+}
+
+.bb-expired-date {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+.bb-expired-label {
+    color: #dc3232;
+    font-style: italic;
+    font-size: 11px;
+}
+
+/* Admin Bar Styles */
+#wp-admin-bar-bb-recruitment .ab-icon {
+    font: normal 20px/1 dashicons;
+    speak: never;
+    vertical-align: top;
+}
+
+#wp-admin-bar-bb-recruitment .ab-icon:before {
+    content: '\f110'; /* dashicons-businessman */
+}
+
+/* Dashboard Widget Styles */
+#bb_recruitment_stats .bb-stat-grid,
+#bb_recent_applications .bb-recent-applications {
+    margin-top: 10px;
+}
+
+.bb-dashboard-widget-content {
+    padding: 12px;
+}
+
+/* Settings Page Specific */
+.bb-settings-tabs {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.bb-tab-nav {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    overflow-x: auto;
+}
+
+.bb-tab-link {
+    flex: 1;
+    padding: 15px 20px;
+    text-align: center;
+    text-decoration: none;
+    color: #666;
+    border-right: 1px solid #ddd;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.bb-tab-link:last-child {
+    border-right: none;
+}
+
+.bb-tab-link:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.bb-tab-link.active {
+    background: white;
+    color: #0073aa;
+    font-weight: 600;
+    position: relative;
+}
+
+.bb-tab-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #0073aa;
+}
+
+.bb-tab-content {
+    display: none;
+    padding: 30px;
+}
+
+.bb-tab-content.active {
+    display: block;
+}
+
+/* Utility Classes */
+.bb-text-center { text-align: center; }
+.bb-text-left { text-align: left; }
+.bb-text-right { text-align: right; }
+
+.bb-mb-0 { margin-bottom: 0; }
+.bb-mb-10 { margin-bottom: 10px; }
+.bb-mb-15 { margin-bottom: 15px; }
+.bb-mb-20 { margin-bottom: 20px; }
+
+.bb-mt-0 { margin-top: 0; }
+.bb-mt-10 { margin-top: 10px; }
+.bb-mt-15 { margin-top: 15px; }
+.bb-mt-20 { margin-top: 20px; }
+
+.bb-hidden { display: none; }
+.bb-visible { display: block; }
+
+.bb-pull-left { float: left; }
+.bb-pull-right { float: right; }
+
+.bb-clearfix::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+/* Animation Classes */
+.bb-fade-in {
+    animation: bbFadeIn 0.3s ease-in;
+}
+
+.bb-slide-in {
+    animation: bbSlideIn 0.3s ease-out;
+}
+
+@keyframes bbFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes bbSlideIn {
+    from { 
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to { 
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
