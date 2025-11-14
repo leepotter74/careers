@@ -29,7 +29,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'bb_update_application_status',
-                app_id: appId,
+                application_id: appId,
                 status: newStatus,
                 nonce: bbAppManager.nonce
             },
@@ -81,7 +81,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'bb_get_application_details',
-                app_id: appId,
+                application_id: appId,
                 nonce: bbAppManager.nonce
             },
             success: function(response) {

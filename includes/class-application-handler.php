@@ -30,10 +30,11 @@ class Application_Handler {
     private function init_hooks() {
         // AJAX handlers for admin
         add_action('wp_ajax_bb_get_applications', array($this, 'get_applications_ajax'));
+        add_action('wp_ajax_bb_get_application_details', array($this, 'get_application_details_ajax'));
         add_action('wp_ajax_bb_update_application_status', array($this, 'update_application_status_ajax'));
         add_action('wp_ajax_bb_delete_application', array($this, 'delete_application_ajax'));
         add_action('wp_ajax_bb_export_applications', array($this, 'export_applications_ajax'));
-        
+
         // AJAX handler for loading saved applications
         add_action('wp_ajax_bb_load_saved_application', array($this, 'load_saved_application_ajax'));
         add_action('wp_ajax_nopriv_bb_load_saved_application', array($this, 'load_saved_application_ajax'));
@@ -380,6 +381,86 @@ class Application_Handler {
         ));
     }
     
+    /**
+     * AJAX: Get application details
+     */
+    public function get_application_details_ajax() {
+        check_ajax_referer('bb_recruitment_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Permission denied.', 'big-bundle'));
+        }
+
+        $application_id = intval($_POST['application_id'] ?? 0);
+
+        if (!$application_id) {
+            wp_send_json_error(__('Invalid application ID.', 'big-bundle'));
+        }
+
+        $application = $this->get_application($application_id);
+
+        if (!$application) {
+            wp_send_json_error(__('Application not found.', 'big-bundle'));
+        }
+
+        // Get job details
+        $job_title = get_the_title($application->job_id);
+        $job_url = get_edit_post_link($application->job_id);
+
+        // Format status label
+        $status_labels = array(
+            'submitted' => __('Submitted', 'big-bundle'),
+            'under_review' => __('Under Review', 'big-bundle'),
+            'shortlisted' => __('Shortlisted', 'big-bundle'),
+            'interviewed' => __('Interviewed', 'big-bundle'),
+            'offered' => __('Offered', 'big-bundle'),
+            'hired' => __('Hired', 'big-bundle'),
+            'rejected' => __('Rejected', 'big-bundle'),
+            'withdrawn' => __('Withdrawn', 'big-bundle'),
+            'draft' => __('Draft', 'big-bundle')
+        );
+
+        $status_label = $status_labels[$application->application_status] ?? ucfirst(str_replace('_', ' ', $application->application_status));
+
+        // Format application data
+        $app_data = $application->application_data ?: array();
+        $formatted_data = '';
+
+        if (!empty($app_data)) {
+            foreach ($app_data as $key => $value) {
+                if (!empty($value)) {
+                    $field_label = ucwords(str_replace('_', ' ', $key));
+                    $formatted_data .= '<div class="form-field">';
+                    $formatted_data .= '<strong>' . esc_html($field_label) . ':</strong> ';
+
+                    if (strlen($value) > 100) {
+                        $formatted_data .= '<div class="textarea-value">' . nl2br(esc_html($value)) . '</div>';
+                    } else {
+                        $formatted_data .= '<span class="field-value">' . esc_html($value) . '</span>';
+                    }
+
+                    $formatted_data .= '</div>';
+                }
+            }
+        }
+
+        if (empty($formatted_data)) {
+            $formatted_data = '<p><em>' . __('No additional application data available.', 'big-bundle') . '</em></p>';
+        }
+
+        wp_send_json_success(array(
+            'applicant_name' => $application->applicant_name,
+            'applicant_email' => $application->applicant_email,
+            'phone' => $application->applicant_phone,
+            'job_title' => $job_title,
+            'job_url' => $job_url,
+            'status_label' => $status_label,
+            'created_date' => $application->created_date,
+            'updated_date' => $application->updated_date,
+            'formatted_data' => $formatted_data
+        ));
+    }
+
     /**
      * AJAX: Update application status
      */
