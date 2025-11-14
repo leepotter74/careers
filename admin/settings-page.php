@@ -38,6 +38,19 @@ if ($_POST && wp_verify_nonce($_POST['bb_recruitment_settings_nonce'] ?? '', 'bb
     // Page settings
     update_option('bb_recruitment_jobs_page_id', intval($_POST['jobs_page_id'] ?? 0));
     update_option('bb_recruitment_privacy_policy_url', esc_url_raw($_POST['privacy_policy_url'] ?? ''));
+
+    // Archive slug
+    $old_slug = get_option('bb_recruitment_archive_slug', 'jobs');
+    $new_slug = sanitize_title($_POST['archive_slug'] ?? 'jobs');
+    if (empty($new_slug)) {
+        $new_slug = 'jobs';
+    }
+    update_option('bb_recruitment_archive_slug', $new_slug);
+
+    // Flush rewrite rules if slug changed
+    if ($old_slug !== $new_slug) {
+        update_option('bb_recruitment_flush_rewrite_rules', true);
+    }
     
     // Data retention
     update_option('bb_recruitment_data_retention_days', intval($_POST['data_retention_days'] ?? 365));
@@ -59,6 +72,7 @@ $twitter_handle = get_option('bb_recruitment_twitter_handle', '');
 $application_fields = get_option('bb_recruitment_application_fields', array());
 $jobs_page_id = get_option('bb_recruitment_jobs_page_id', 0);
 $privacy_policy_url = get_option('bb_recruitment_privacy_policy_url', '');
+$archive_slug = get_option('bb_recruitment_archive_slug', 'jobs');
 $data_retention_days = get_option('bb_recruitment_data_retention_days', 365);
 
 // Default field settings
@@ -115,7 +129,24 @@ foreach ($default_fields as $field => $defaults) {
                             </p>
                         </td>
                     </tr>
-                    
+
+                    <tr>
+                        <th scope="row"><?php _e('Jobs Archive URL Slug', 'big-bundle'); ?></th>
+                        <td>
+                            <input type="text" name="archive_slug" value="<?php echo esc_attr($archive_slug); ?>" class="regular-text" pattern="[a-z0-9\-]+" />
+                            <p class="description">
+                                <?php
+                                $site_url = trailingslashit(get_site_url());
+                                printf(
+                                    __('The URL slug for the jobs archive. Current URL: <code>%s<strong>%s</strong></code><br>Use lowercase letters, numbers, and hyphens only. Example: "jobs", "careers", or "vacancies". Changes require permalinks to be refreshed.', 'big-bundle'),
+                                    esc_html($site_url),
+                                    esc_html($archive_slug)
+                                );
+                                ?>
+                            </p>
+                        </td>
+                    </tr>
+
                     <tr>
                         <th scope="row"><?php _e('Auto-expire Jobs', 'big-bundle'); ?></th>
                         <td>

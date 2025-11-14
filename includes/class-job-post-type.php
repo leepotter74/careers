@@ -76,7 +76,10 @@ class Job_Post_Type {
             'not_found' => __('No job vacancies found.', 'big-bundle'),
             'not_found_in_trash' => __('No job vacancies found in Trash.', 'big-bundle')
         );
-        
+
+        // Get custom archive slug from settings
+        $archive_slug = get_option('bb_recruitment_archive_slug', 'jobs');
+
         $args = array(
             'labels' => $labels,
             'public' => true,
@@ -85,7 +88,7 @@ class Job_Post_Type {
             'show_in_menu' => false, // We'll add it to Big Bundle menu
             'show_in_admin_bar' => true,
             'query_var' => true,
-            'rewrite' => array('slug' => 'jobs'),
+            'rewrite' => array('slug' => $archive_slug),
             'capability_type' => 'post',
             'has_archive' => true,
             'hierarchical' => false,
@@ -94,7 +97,7 @@ class Job_Post_Type {
             'supports' => array('title', 'editor', 'excerpt', 'thumbnail'),
             'show_in_rest' => true, // Enable Gutenberg
         );
-        
+
         register_post_type('job_vacancy', $args);
         
         // Set flag to flush rewrite rules if this is the first time registering
