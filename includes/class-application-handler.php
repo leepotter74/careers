@@ -787,10 +787,35 @@ class Application_Handler {
     private function format_single_value($value, $escape = true) {
         // Check if it's a CF7 file hash (64-character hexadecimal string)
         if (is_string($value) && preg_match('/^[a-f0-9]{64}$/i', $value)) {
-            // This is likely a CF7 file hash from an old submission
-            return '<span style="color: #996800; font-style: italic;">' .
-                   '<span class="dashicons dashicons-media-document" style="font-size: 16px; vertical-align: middle;"></span> ' .
-                   __('File uploaded', 'big-bundle') . ' ' .
+            // Try to find the actual file in wpcf7_uploads directory
+            $upload_dir = wp_upload_dir();
+            $wpcf7_dir = $upload_dir['basedir'] . '/wpcf7_uploads/';
+
+            if (is_dir($wpcf7_dir)) {
+                // Search for files containing this hash
+                $files = glob($wpcf7_dir . '*' . $value . '*');
+
+                if (!empty($files) && file_exists($files[0])) {
+                    // Found the file! Create a download link
+                    $file_path = $files[0];
+                    $file_url = str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $file_path);
+                    $filename = basename($file_path);
+
+                    // Extract the original filename (CF7 prefixes with hash)
+                    $display_name = preg_replace('/^[a-f0-9]{64}-/', '', $filename);
+
+                    return '<a href="' . esc_url($file_url) . '" target="_blank" download style="color: #0073aa; text-decoration: none;">' .
+                           '<span class="dashicons dashicons-download" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                           esc_html($display_name) . ' ' .
+                           '<span style="font-size: 11px; color: #996800;">(' . __('legacy upload', 'big-bundle') . ')</span>' .
+                           '</a>';
+                }
+            }
+
+            // File not found - show message
+            return '<span style="color: #d63638; font-style: italic;">' .
+                   '<span class="dashicons dashicons-warning" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                   __('File no longer available', 'big-bundle') . ' ' .
                    '<span style="font-size: 11px;">(' . __('legacy upload', 'big-bundle') . ')</span>' .
                    '</span>';
         }
