@@ -142,6 +142,9 @@ $jobs = $wpdb->get_results("
                                 }
                             }
                         }
+
+                        // Get note count for this application
+                        $note_count = Application_Handler::get_instance()->get_note_count($app->id);
                     ?>
                         <div class="kanban-card"
                              data-id="<?php echo $app->id; ?>"
@@ -194,9 +197,12 @@ $jobs = $wpdb->get_results("
                                 <button class="view-details-btn" data-id="<?php echo $app->id; ?>">
                                     <?php _e('View Details', 'big-bundle'); ?>
                                 </button>
-                            </div>
-                            <div class="card-notes-preview">
-                                <em><?php _e('Notes feature coming soon', 'big-bundle'); ?></em>
+                                <button class="quick-note-btn" data-id="<?php echo $app->id; ?>" title="<?php _e('Add quick note', 'big-bundle'); ?>">
+                                    <span class="dashicons dashicons-edit"></span>
+                                    <?php if ($note_count > 0) : ?>
+                                        <span class="note-badge"><?php echo $note_count; ?></span>
+                                    <?php endif; ?>
+                                </button>
                             </div>
                         </div>
                     <?php endforeach; ?>

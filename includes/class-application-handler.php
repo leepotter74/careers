@@ -35,6 +35,11 @@ class Application_Handler {
         add_action('wp_ajax_bb_delete_application', array($this, 'delete_application_ajax'));
         add_action('wp_ajax_bb_export_applications', array($this, 'export_applications_ajax'));
 
+        // AJAX handlers for notes
+        add_action('wp_ajax_bb_get_application_notes', array($this, 'get_notes_ajax'));
+        add_action('wp_ajax_bb_add_application_note', array($this, 'add_note_ajax'));
+        add_action('wp_ajax_bb_delete_application_note', array($this, 'delete_note_ajax'));
+
         // AJAX handler for loading saved applications
         add_action('wp_ajax_bb_load_saved_application', array($this, 'load_saved_application_ajax'));
         add_action('wp_ajax_nopriv_bb_load_saved_application', array($this, 'load_saved_application_ajax'));
@@ -865,5 +870,120 @@ class Application_Handler {
 
         // Regular text
         return $escape ? esc_html($value) : $value;
+    }
+
+    /**
+     * AJAX: Get notes for an application
+     */
+    public function get_notes_ajax() {
+        check_ajax_referer('bb_recruitment_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $application_id = intval($_POST['application_id']);
+
+        global $wpdb;
+        $notes_table = $wpdb->prefix . 'recruitment_application_notes';
+
+        $notes = $wpdb->get_results($wpdb->prepare(
+            "SELECT n.*, u.display_name as author_name
+             FROM $notes_table n
+             LEFT JOIN {$wpdb->users} u ON n.user_id = u.ID
+             WHERE n.application_id = %d
+             ORDER BY n.created_date DESC",
+            $application_id
+        ));
+
+        wp_send_json_success($notes);
+    }
+
+    /**
+     * AJAX: Add a new note
+     */
+    public function add_note_ajax() {
+        check_ajax_referer('bb_recruitment_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $application_id = intval($_POST['application_id']);
+        $note_text = sanitize_textarea_field($_POST['note_text']);
+
+        if (empty($note_text)) {
+            wp_send_json_error('Note text is required');
+        }
+
+        global $wpdb;
+        $notes_table = $wpdb->prefix . 'recruitment_application_notes';
+
+        $result = $wpdb->insert(
+            $notes_table,
+            array(
+                'application_id' => $application_id,
+                'user_id' => get_current_user_id(),
+                'note_text' => $note_text,
+                'created_date' => current_time('mysql')
+            ),
+            array('%d', '%d', '%s', '%s')
+        );
+
+        if ($result) {
+            $note_id = $wpdb->insert_id;
+            $note = $wpdb->get_row($wpdb->prepare(
+                "SELECT n.*, u.display_name as author_name
+                 FROM $notes_table n
+                 LEFT JOIN {$wpdb->users} u ON n.user_id = u.ID
+                 WHERE n.id = %d",
+                $note_id
+            ));
+
+            wp_send_json_success($note);
+        } else {
+            wp_send_json_error('Failed to add note');
+        }
+    }
+
+    /**
+     * AJAX: Delete a note
+     */
+    public function delete_note_ajax() {
+        check_ajax_referer('bb_recruitment_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $note_id = intval($_POST['note_id']);
+
+        global $wpdb;
+        $notes_table = $wpdb->prefix . 'recruitment_application_notes';
+
+        $result = $wpdb->delete(
+            $notes_table,
+            array('id' => $note_id),
+            array('%d')
+        );
+
+        if ($result) {
+            wp_send_json_success('Note deleted');
+        } else {
+            wp_send_json_error('Failed to delete note');
+        }
+    }
+
+    /**
+     * Get note count for an application
+     */
+    public function get_note_count($application_id) {
+        global $wpdb;
+        $notes_table = $wpdb->prefix . 'recruitment_application_notes';
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $notes_table WHERE application_id = %d",
+            $application_id
+        ));
     }
 }

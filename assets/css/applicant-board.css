@@ -238,10 +238,12 @@
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid #f0f0f1;
+    display: flex;
+    gap: 8px;
 }
 
 .view-details-btn {
-    width: 100%;
+    flex: 1;
     padding: 6px 12px;
     font-size: 12px;
     border: 1px solid #2271b1;
@@ -255,6 +257,52 @@
 .view-details-btn:hover {
     background: #2271b1;
     color: #fff;
+}
+
+.quick-note-btn {
+    position: relative;
+    padding: 6px 10px;
+    font-size: 12px;
+    border: 1px solid #50575e;
+    background: #fff;
+    color: #50575e;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quick-note-btn:hover {
+    background: #50575e;
+    color: #fff;
+    border-color: #50575e;
+}
+
+.quick-note-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.quick-note-btn .note-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #d63638;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 /* Notes Preview */

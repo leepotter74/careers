@@ -243,10 +243,24 @@ class BB_Recruitment_Manager {
             KEY application_status (application_status),
             KEY created_date (created_date)
         ) $charset_collate;";
-        
-        
+
+        // Application Notes table
+        $notes_table = $wpdb->prefix . 'recruitment_application_notes';
+        $notes_sql = "CREATE TABLE $notes_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            application_id bigint(20) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            note_text text NOT NULL,
+            created_date datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY application_id (application_id),
+            KEY user_id (user_id),
+            KEY created_date (created_date)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($applications_sql);
+        dbDelta($notes_sql);
     }
     
     /**

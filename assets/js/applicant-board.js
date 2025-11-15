@@ -220,6 +220,54 @@
             loadApplicationDetails(applicationId);
         });
 
+        // Quick note button
+        $(document).on('click', '.quick-note-btn', function(e) {
+            e.stopPropagation();
+            const $btn = $(this);
+            const applicationId = $btn.data('id');
+            const noteText = prompt('Enter your note:');
+
+            if (noteText && noteText.trim()) {
+                $btn.prop('disabled', true);
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'bb_add_application_note',
+                        application_id: applicationId,
+                        note_text: noteText.trim(),
+                        nonce: bbRecruitmentBoard.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update the note badge
+                            const $card = $btn.closest('.kanban-card');
+                            let $badge = $btn.find('.note-badge');
+
+                            if ($badge.length === 0) {
+                                $btn.append('<span class="note-badge">1</span>');
+                            } else {
+                                const currentCount = parseInt($badge.text()) || 0;
+                                $badge.text(currentCount + 1);
+                            }
+
+                            // Show success message
+                            showNotice('Note added successfully', 'success');
+                        } else {
+                            alert('Failed to add note: ' + (response.data || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        alert('Network error occurred');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false);
+                    }
+                });
+            }
+        });
+
         // Close modal
         $('.modal-close, .modal-overlay').on('click', function() {
             $('#application-modal').fadeOut();
@@ -285,6 +333,23 @@
                 $('#modal-application-details').html('<p class="error">Network error occurred</p>');
             }
         });
+    }
+
+    /**
+     * Show notice message
+     */
+    function showNotice(message, type) {
+        const noticeClass = type === 'success' ? 'notice-success' : 'notice-error';
+        const $notice = $('<div class="notice ' + noticeClass + ' is-dismissible"><p>' + message + '</p></div>');
+
+        $('.wrap h1').after($notice);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(function() {
+            $notice.fadeOut(function() {
+                $(this).remove();
+            });
+        }, 3000);
     }
 
 })(jQuery);

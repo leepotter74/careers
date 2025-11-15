@@ -112,9 +112,18 @@ jQuery(document).ready(function($) {
                             '<h3>Form Submission Details</h3>' +
                             app.formatted_data +
                         '</div>' +
+                        '<div class="detail-section notes-section">' +
+                            '<h3>Notes <span class="note-count" id="note-count-' + appId + '"></span></h3>' +
+                            '<div class="notes-list" id="notes-list-' + appId + '"></div>' +
+                            '<div class="add-note-form">' +
+                                '<textarea id="note-text-' + appId + '" placeholder="Add a note..." rows="3"></textarea>' +
+                                '<button type="button" class="button button-primary add-note-btn" data-app-id="' + appId + '">Add Note</button>' +
+                            '</div>' +
+                        '</div>' +
                     '</div>';
-                    
+
                     $('#application-details').html(detailsHtml);
+                    loadNotes(appId);
                     $('#modal-title').text('Application: ' + app.applicant_name);
                 } else {
                     $('#application-details').html('<p class="error">Failed to load application details: ' + (response.data || 'Unknown error') + '</p>');
@@ -317,4 +326,134 @@ jQuery(document).ready(function($) {
         }
         </style>
     `);
+
+    // Notes functionality
+    function loadNotes(appId) {
+        $.ajax({
+            url: bbAppManager.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'bb_get_application_notes',
+                application_id: appId,
+                nonce: bbAppManager.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    renderNotes(appId, response.data);
+                }
+            }
+        });
+    }
+
+    function renderNotes(appId, notes) {
+        var $notesList = $('#notes-list-' + appId);
+        var $noteCount = $('#note-count-' + appId);
+
+        if (notes.length === 0) {
+            $notesList.html('<p class="no-notes">No notes yet.</p>');
+            $noteCount.text('');
+        } else {
+            var notesHtml = '';
+            notes.forEach(function(note) {
+                var noteDate = new Date(note.created_date).toLocaleString();
+                notesHtml += '<div class="note-item" data-note-id="' + note.id + '">' +
+                    '<div class="note-header">' +
+                        '<strong>' + note.author_name + '</strong>' +
+                        '<span class="note-date">' + noteDate + '</span>' +
+                        '<button type="button" class="delete-note-btn" data-note-id="' + note.id + '" data-app-id="' + appId + '" title="Delete note">&times;</button>' +
+                    '</div>' +
+                    '<div class="note-text">' + escapeHtml(note.note_text) + '</div>' +
+                '</div>';
+            });
+            $notesList.html(notesHtml);
+            $noteCount.text('(' + notes.length + ')');
+        }
+    }
+
+    // Handle add note button click (delegated)
+    $(document).on('click', '.add-note-btn', function() {
+        var $btn = $(this);
+        var appId = $btn.data('app-id');
+        var $textarea = $('#note-text-' + appId);
+        var noteText = $textarea.val().trim();
+
+        if (!noteText) {
+            alert('Please enter a note');
+            return;
+        }
+
+        $btn.prop('disabled', true).text('Adding...');
+
+        $.ajax({
+            url: bbAppManager.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'bb_add_application_note',
+                application_id: appId,
+                note_text: noteText,
+                nonce: bbAppManager.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $textarea.val('');
+                    loadNotes(appId);
+                    showNotice('Note added successfully', 'success');
+                } else {
+                    alert('Failed to add note: ' + (response.data || 'Unknown error'));
+                }
+            },
+            error: function() {
+                alert('Network error occurred');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).text('Add Note');
+            }
+        });
+    });
+
+    // Handle delete note button click (delegated)
+    $(document).on('click', '.delete-note-btn', function() {
+        if (!confirm('Are you sure you want to delete this note?')) {
+            return;
+        }
+
+        var $btn = $(this);
+        var noteId = $btn.data('note-id');
+        var appId = $btn.data('app-id');
+
+        $btn.prop('disabled', true);
+
+        $.ajax({
+            url: bbAppManager.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'bb_delete_application_note',
+                note_id: noteId,
+                nonce: bbAppManager.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    loadNotes(appId);
+                    showNotice('Note deleted', 'success');
+                } else {
+                    alert('Failed to delete note: ' + (response.data || 'Unknown error'));
+                }
+            },
+            error: function() {
+                alert('Network error occurred');
+            }
+        });
+    });
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
 });
