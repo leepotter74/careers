@@ -41,7 +41,7 @@ class BB_Application_Manager {
     public function add_admin_menu() {
         // Update the existing Applications page to be functional
         remove_submenu_page('big-bundle', 'bb-recruitment-applications');
-        
+
         add_submenu_page(
             'big-bundle',
             __('Applications', 'recruitment-manager'),
@@ -50,6 +50,23 @@ class BB_Application_Manager {
             'bb-recruitment-applications',
             array($this, 'applications_page')
         );
+
+        // Add Applicant Board (Kanban view)
+        add_submenu_page(
+            'big-bundle',
+            __('Applicant Board', 'recruitment-manager'),
+            '↳ ' . __('Applicant Board', 'recruitment-manager'),
+            'manage_options',
+            'bb-recruitment-board',
+            array($this, 'applicant_board_page')
+        );
+    }
+
+    /**
+     * Applicant Board (Kanban view) page
+     */
+    public function applicant_board_page() {
+        include BB_RECRUITMENT_MANAGER_PLUGIN_DIR . 'admin/applicant-board.php';
     }
     
     /**
@@ -76,6 +93,9 @@ class BB_Application_Manager {
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php _e('Application Management', 'recruitment-manager'); ?></h1>
+            <a href="<?php echo admin_url('admin.php?page=bb-recruitment-board'); ?>" class="page-title-action">
+                <?php _e('Board View →', 'recruitment-manager'); ?>
+            </a>
             
             <!-- Statistics Cards -->
             <div class="app-stats-grid">
@@ -533,21 +553,51 @@ class BB_Application_Manager {
      * AJAX handler for status updates
      */
     public function ajax_update_status() {
-        check_ajax_referer('update_application_status', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die(__('Permission denied.', 'recruitment-manager'));
+        // Support both old and new nonce for backwards compatibility
+        $nonce_valid = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'update_application_status')) {
+                $nonce_valid = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'bb_recruitment_nonce')) {
+                $nonce_valid = true;
+            }
         }
-        
-        $app_id = intval($_POST['app_id']);
+
+        if (!$nonce_valid) {
+            wp_send_json_error(__('Security check failed.', 'recruitment-manager'));
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Permission denied.', 'recruitment-manager'));
+        }
+
+        // Support both parameter names
+        $app_id = isset($_POST['application_id']) ? intval($_POST['application_id']) : intval($_POST['app_id'] ?? 0);
         $new_status = sanitize_text_field($_POST['status']);
-        
-        $valid_statuses = array('pending', 'reviewed', 'shortlisted', 'rejected');
-        
+
+        if (!$app_id) {
+            wp_send_json_error(__('Invalid application ID.', 'recruitment-manager'));
+        }
+
+        // Expanded list of valid statuses for Kanban board
+        $valid_statuses = array(
+            'pending',
+            'submitted',
+            'under_review',
+            'reviewed',
+            'shortlisted',
+            'interviewed',
+            'offered',
+            'hired',
+            'rejected',
+            'withdrawn',
+            'draft'
+        );
+
         if (!in_array($new_status, $valid_statuses)) {
             wp_send_json_error(__('Invalid status.', 'recruitment-manager'));
         }
-        
+
         global $wpdb;
         $updated = $wpdb->update(
             $this->table_name,
@@ -556,7 +606,7 @@ class BB_Application_Manager {
             array('%s', '%s'),
             array('%d')
         );
-        
+
         if ($updated !== false) {
             wp_send_json_success(__('Status updated successfully.', 'recruitment-manager'));
         } else {
@@ -699,6 +749,16 @@ class BB_Application_Manager {
                 'nonce' => wp_create_nonce('bb_recruitment_nonce'),
                 'confirm_delete' => __('Are you sure you want to delete the selected applications?', 'recruitment-manager'),
                 'confirm_status' => __('Are you sure you want to update the status of selected applications?', 'recruitment-manager')
+            ));
+        }
+
+        // Enqueue Applicant Board assets
+        if ($hook === 'big-bundle_page_bb-recruitment-board') {
+            wp_enqueue_style('bb-applicant-board', BB_RECRUITMENT_MANAGER_PLUGIN_URL . 'assets/css/applicant-board.css', array(), BB_RECRUITMENT_MANAGER_VERSION);
+            wp_enqueue_script('bb-applicant-board', BB_RECRUITMENT_MANAGER_PLUGIN_URL . 'assets/js/applicant-board.js', array('jquery'), BB_RECRUITMENT_MANAGER_VERSION, true);
+            wp_localize_script('bb-applicant-board', 'bbRecruitmentBoard', array(
+                'nonce' => wp_create_nonce('bb_recruitment_nonce'),
+                'ajax_url' => admin_url('admin-ajax.php')
             ));
         }
     }
