@@ -757,32 +757,88 @@ class Application_Handler {
                 $output .= '<ul style="margin: 5px 0; padding-left: 20px;">';
                 foreach ($value as $item) {
                     if (!empty($item)) {
-                        $output .= '<li>' . esc_html($item) . '</li>';
+                        $output .= '<li>' . $this->format_single_value($item) . '</li>';
                     }
                 }
                 $output .= '</ul>';
             } else {
                 // Display as comma-separated for shorter arrays
-                $filtered_values = array_filter($value, function($item) { return !empty($item); });
-                $output .= esc_html(implode(', ', $filtered_values));
+                $formatted_values = array();
+                foreach ($value as $item) {
+                    if (!empty($item)) {
+                        $formatted_values[] = $this->format_single_value($item, false);
+                    }
+                }
+                $output .= implode(', ', $formatted_values);
             }
-        } elseif (filter_var($value, FILTER_VALIDATE_URL)) {
-            // Display URLs as clickable links
-            $output .= '<a href="' . esc_url($value) . '" target="_blank" style="color: #0073aa;">' . esc_html($value) . '</a>';
-        } elseif (is_email($value)) {
-            // Display emails as mailto links
-            $output .= '<a href="mailto:' . esc_attr($value) . '" style="color: #0073aa;">' . esc_html($value) . '</a>';
-        } elseif (strlen($value) > 100) {
-            // Display long text with line breaks preserved
-            $output .= '<div style="white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px;">' . esc_html($value) . '</div>';
         } else {
-            // Display short text normally
-            $output .= esc_html($value);
+            $output .= $this->format_single_value($value);
         }
 
         $output .= '</div>';
         $output .= '</div>';
 
         return $output;
+    }
+
+    /**
+     * Format a single value (helper for format_field_row)
+     */
+    private function format_single_value($value, $escape = true) {
+        // Check if it's a CF7 file hash (64-character hexadecimal string)
+        if (is_string($value) && preg_match('/^[a-f0-9]{64}$/i', $value)) {
+            // This is likely a CF7 file hash from an old submission
+            return '<span style="color: #996800; font-style: italic;">' .
+                   '<span class="dashicons dashicons-media-document" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                   __('File uploaded', 'big-bundle') . ' ' .
+                   '<span style="font-size: 11px;">(' . __('legacy upload', 'big-bundle') . ')</span>' .
+                   '</span>';
+        }
+
+        // Check if value looks like a file path in uploads directory
+        if (is_string($value) && (strpos($value, '/uploads/') !== false || strpos($value, 'wpcf7_uploads') !== false)) {
+            // Extract filename from path
+            $filename = basename($value);
+            // Check if it's a URL or a path
+            if (filter_var($value, FILTER_VALIDATE_URL)) {
+                return '<a href="' . esc_url($value) . '" target="_blank" download style="color: #0073aa; text-decoration: none;">' .
+                       '<span class="dashicons dashicons-download" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                       esc_html($filename) .
+                       '</a>';
+            } else {
+                // It's a file path, try to convert to URL
+                $upload_dir = wp_upload_dir();
+                if (strpos($value, $upload_dir['basedir']) === 0) {
+                    $file_url = str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $value);
+                    return '<a href="' . esc_url($file_url) . '" target="_blank" download style="color: #0073aa; text-decoration: none;">' .
+                           '<span class="dashicons dashicons-download" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                           esc_html($filename) .
+                           '</a>';
+                }
+                // Can't convert to URL, just show filename
+                return '<span style="color: #666;">' .
+                       '<span class="dashicons dashicons-media-document" style="font-size: 16px; vertical-align: middle;"></span> ' .
+                       esc_html($filename) .
+                       '</span>';
+            }
+        }
+
+        // Regular URL handling
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return '<a href="' . esc_url($value) . '" target="_blank" style="color: #0073aa;">' . esc_html($value) . '</a>';
+        }
+
+        // Email handling
+        if (is_email($value)) {
+            return '<a href="mailto:' . esc_attr($value) . '" style="color: #0073aa;">' . esc_html($value) . '</a>';
+        }
+
+        // Long text handling
+        if (strlen($value) > 100) {
+            return '<div style="white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px;">' . esc_html($value) . '</div>';
+        }
+
+        // Regular text
+        return $escape ? esc_html($value) : $value;
     }
 }

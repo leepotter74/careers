@@ -157,37 +157,55 @@ class BB_Form_Integration {
      */
     public function handle_cf7_submission($contact_form) {
         $submission = WPCF7_Submission::get_instance();
-        
+
         if (!$submission) {
             return;
         }
-        
+
         $posted_data = $submission->get_posted_data();
+        $uploaded_files = $submission->uploaded_files(); // Get actual file paths
+
         $job_id = $this->detect_job_id_from_context();
-        
+
         if (!$job_id && isset($posted_data['job-id'])) {
             $job_id = intval($posted_data['job-id']);
         }
-        
+
         if (!$job_id) {
             $job_id = $this->get_job_id_from_form_meta($contact_form->id(), 'cf7');
         }
-        
+
         if (!$job_id) {
             error_log('BB Recruitment: No job ID found for CF7 submission');
             return;
         }
-        
+
         // Extract applicant details
         $applicant_name = $this->extract_name_from_cf7($posted_data);
         $applicant_email = $posted_data['your-email'] ?? $posted_data['email'] ?? '';
         $phone = $posted_data['your-phone'] ?? $posted_data['phone'] ?? '';
-        
+
         if (!$applicant_name || !$applicant_email) {
             error_log('BB Recruitment: Missing required fields in CF7 submission');
             return;
         }
-        
+
+        // Replace file hashes with actual file URLs in posted_data
+        if (!empty($uploaded_files)) {
+            foreach ($uploaded_files as $field_name => $file_path) {
+                if (!empty($file_path) && is_string($file_path)) {
+                    // Convert file path to URL
+                    $upload_dir = wp_upload_dir();
+                    if (strpos($file_path, $upload_dir['basedir']) === 0) {
+                        $file_url = str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $file_path);
+                        $posted_data[$field_name] = $file_url;
+                    } else {
+                        $posted_data[$field_name] = $file_path;
+                    }
+                }
+            }
+        }
+
         // Prepare application data
         $application_data = array(
             'form_type' => 'contact_form_7',
@@ -195,7 +213,7 @@ class BB_Form_Integration {
             'form_title' => $contact_form->title(),
             'fields' => $posted_data
         );
-        
+
         // Add the application
         $result = $this->application_manager->add_application(
             $job_id,
@@ -204,7 +222,7 @@ class BB_Form_Integration {
             json_encode($application_data),
             $phone
         );
-        
+
         if ($result) {
             error_log("BB Recruitment: Added application from CF7 form {$contact_form->id()} for job {$job_id}");
             do_action('bb_application_received', $job_id, $applicant_email, 'contact_form_7');
