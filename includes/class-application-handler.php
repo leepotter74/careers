@@ -490,7 +490,7 @@ class Application_Handler {
         wp_send_json_success(array(
             'applicant_name' => $application->applicant_name,
             'applicant_email' => $application->applicant_email,
-            'phone' => $application->applicant_phone,
+            'phone' => $application->phone ?? '',
             'job_title' => $job_title,
             'job_url' => $job_url,
             'status_label' => $status_label,

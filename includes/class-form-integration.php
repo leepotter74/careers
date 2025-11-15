@@ -201,6 +201,12 @@ class BB_Form_Integration {
             error_log('BB Recruitment CF7 Debug: Upload dir baseurl: ' . $upload_dir['baseurl']);
 
             foreach ($uploaded_files as $field_name => $file_path) {
+                // CF7 can return file paths as arrays (especially with multiple files)
+                // Extract the first file path if it's an array
+                if (is_array($file_path)) {
+                    $file_path = !empty($file_path[0]) ? $file_path[0] : '';
+                }
+
                 error_log("BB Recruitment CF7 Debug: Processing field '$field_name' with path: $file_path");
 
                 if (!empty($file_path) && is_string($file_path) && file_exists($file_path)) {
