@@ -2,16 +2,23 @@
 /**
  * Create Application Notes Table
  *
- * Run this file once to create the notes table
+ * Access this via browser: http://freshtest.local/wp-content/plugins/big-bundle/modules/recruitment-manager/create-notes-table.php
  */
 
-require_once('../../../../wp-load.php');
+// Load WordPress
+$wp_load_path = '../../../../wp-load.php';
+if (file_exists($wp_load_path)) {
+    require_once($wp_load_path);
+} else {
+    die('Could not find WordPress. Please check the path.');
+}
 
+// Create the table
 global $wpdb;
 $table_name = $wpdb->prefix . 'recruitment_application_notes';
 $charset_collate = $wpdb->get_charset_collate();
 
-$sql = "CREATE TABLE $table_name (
+$sql = "CREATE TABLE IF NOT EXISTS $table_name (
     id bigint(20) NOT NULL AUTO_INCREMENT,
     application_id bigint(20) NOT NULL,
     user_id bigint(20) NOT NULL,
@@ -26,5 +33,15 @@ $sql = "CREATE TABLE $table_name (
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 dbDelta($sql);
 
-echo "Application notes table created successfully!\n";
-echo "Table name: $table_name\n";
+// Check if table was created
+$table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+if ($table_exists) {
+    echo "<h1>Success!</h1>";
+    echo "<p>Application notes table created successfully!</p>";
+    echo "<p>Table name: <strong>$table_name</strong></p>";
+    echo "<p><a href='/wp-admin/admin.php?page=bb-recruitment-board'>Go to Applicant Board</a></p>";
+} else {
+    echo "<h1>Error!</h1>";
+    echo "<p>Failed to create table. Please check database permissions.</p>";
+}
