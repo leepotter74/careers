@@ -165,6 +165,10 @@ class BB_Form_Integration {
         $posted_data = $submission->get_posted_data();
         $uploaded_files = $submission->uploaded_files(); // Get actual file paths
 
+        // Debug: Log uploaded files data
+        error_log('BB Recruitment CF7 Debug: Uploaded files data: ' . print_r($uploaded_files, true));
+        error_log('BB Recruitment CF7 Debug: Posted data (before file processing): ' . print_r($posted_data, true));
+
         $job_id = $this->detect_job_id_from_context();
 
         if (!$job_id && isset($posted_data['job-id'])) {
@@ -192,19 +196,33 @@ class BB_Form_Integration {
 
         // Replace file hashes with actual file URLs in posted_data
         if (!empty($uploaded_files)) {
+            $upload_dir = wp_upload_dir();
+            error_log('BB Recruitment CF7 Debug: Upload dir basedir: ' . $upload_dir['basedir']);
+            error_log('BB Recruitment CF7 Debug: Upload dir baseurl: ' . $upload_dir['baseurl']);
+
             foreach ($uploaded_files as $field_name => $file_path) {
-                if (!empty($file_path) && is_string($file_path)) {
+                error_log("BB Recruitment CF7 Debug: Processing field '$field_name' with path: $file_path");
+
+                if (!empty($file_path) && is_string($file_path) && file_exists($file_path)) {
                     // Convert file path to URL
-                    $upload_dir = wp_upload_dir();
                     if (strpos($file_path, $upload_dir['basedir']) === 0) {
                         $file_url = str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $file_path);
                         $posted_data[$field_name] = $file_url;
+                        error_log("BB Recruitment CF7 Debug: Converted '$field_name' to URL: $file_url");
                     } else {
+                        // File is outside standard uploads directory
                         $posted_data[$field_name] = $file_path;
+                        error_log("BB Recruitment CF7 Debug: File path for '$field_name' is outside uploads dir: $file_path");
                     }
+                } else {
+                    error_log("BB Recruitment CF7 Debug: Field '$field_name' - file does not exist or invalid: $file_path");
                 }
             }
+        } else {
+            error_log('BB Recruitment CF7 Debug: No uploaded files found!');
         }
+
+        error_log('BB Recruitment CF7 Debug: Posted data (after file processing): ' . print_r($posted_data, true));
 
         // Prepare application data
         $application_data = array(
