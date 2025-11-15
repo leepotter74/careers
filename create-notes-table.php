@@ -6,11 +6,11 @@
  */
 
 // Load WordPress
-$wp_load_path = '../../../../wp-load.php';
+$wp_load_path = __DIR__ . '/../../../../../../wp-load.php';
 if (file_exists($wp_load_path)) {
     require_once($wp_load_path);
 } else {
-    die('Could not find WordPress. Please check the path.');
+    die('Could not find WordPress. Path tried: ' . $wp_load_path);
 }
 
 // Create the table
