@@ -137,7 +137,7 @@ $jobs = $wpdb->get_results("
                                 if (strpos($key_lower, 'cv') !== false || strpos($key_lower, 'resume') !== false) {
                                     $has_cv = !empty($value);
                                 }
-                                if (strpos($key_lower, 'cover') !== false && strpos($key_lower, 'letter') !== false) {
+                                if (strpos($key_lower, 'cover') !== false) {
                                     $has_cover_letter = !empty($value);
                                 }
                             }
