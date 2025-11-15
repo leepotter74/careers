@@ -707,8 +707,10 @@ class Application_Handler {
 
         $subject = sprintf(__('Application Update - %s', 'big-bundle'), $job_title);
 
+        // Build message without escaping apostrophes
         $message = sprintf(
-            __("Dear %s,\n\n%s\n\nPosition: %s\nStatus: %s\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nHR Team", 'big-bundle'),
+            /* translators: 1: Applicant name, 2: Status message, 3: Job title, 4: Status */
+            "Dear %s,\n\n%s\n\nPosition: %s\nStatus: %s\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nHR Team",
             $application->applicant_name,
             $status_message,
             $job_title,

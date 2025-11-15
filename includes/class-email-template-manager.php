@@ -114,7 +114,12 @@ class BB_Email_Template_Manager {
 
         // Return custom template if exists, otherwise default
         if (isset($templates[$template_key])) {
-            return $templates[$template_key];
+            // Unslash template data to remove excessive escaping
+            return array(
+                'subject' => wp_unslash($templates[$template_key]['subject'] ?? ''),
+                'body' => wp_unslash($templates[$template_key]['body'] ?? ''),
+                'enabled' => $templates[$template_key]['enabled'] ?? true
+            );
         }
 
         return $this->get_default_template($template_key);
