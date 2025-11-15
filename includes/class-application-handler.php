@@ -433,7 +433,11 @@ class Application_Handler {
                     $formatted_data .= '<div class="form-field">';
                     $formatted_data .= '<strong>' . esc_html($field_label) . ':</strong> ';
 
-                    if (strlen($value) > 100) {
+                    // Handle array values (checkboxes, multi-select, etc.)
+                    if (is_array($value)) {
+                        $value = implode(', ', array_map('esc_html', $value));
+                        $formatted_data .= '<span class="field-value">' . $value . '</span>';
+                    } elseif (strlen($value) > 100) {
                         $formatted_data .= '<div class="textarea-value">' . nl2br(esc_html($value)) . '</div>';
                     } else {
                         $formatted_data .= '<span class="field-value">' . esc_html($value) . '</span>';
