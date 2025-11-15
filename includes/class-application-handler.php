@@ -427,28 +427,63 @@ class Application_Handler {
         $formatted_data = '';
 
         if (!empty($app_data)) {
-            foreach ($app_data as $key => $value) {
-                if (!empty($value)) {
-                    $field_label = ucwords(str_replace('_', ' ', $key));
-                    $formatted_data .= '<div class="form-field">';
-                    $formatted_data .= '<strong>' . esc_html($field_label) . ':</strong> ';
+            $form_type = $app_data['form_type'] ?? 'unknown';
+            $form_title = $app_data['form_title'] ?? '';
 
-                    // Handle array values (checkboxes, multi-select, etc.)
-                    if (is_array($value)) {
-                        $value = implode(', ', array_map('esc_html', $value));
-                        $formatted_data .= '<span class="field-value">' . $value . '</span>';
-                    } elseif (strlen($value) > 100) {
-                        $formatted_data .= '<div class="textarea-value">' . nl2br(esc_html($value)) . '</div>';
-                    } else {
-                        $formatted_data .= '<span class="field-value">' . esc_html($value) . '</span>';
+            // Add form information header
+            if ($form_title) {
+                $formatted_data .= '<div class="application-form-info" style="margin-bottom: 20px; padding: 12px; background: #f8f9fa; border-left: 3px solid #0073aa; border-radius: 4px;">';
+                $formatted_data .= '<strong>' . __('Form:', 'big-bundle') . '</strong> ' . esc_html($form_title);
+                if ($form_type) {
+                    $form_type_label = str_replace('_', ' ', ucwords($form_type, '_'));
+                    $formatted_data .= ' <span style="color: #666;">(' . esc_html($form_type_label) . ')</span>';
+                }
+                $formatted_data .= '</div>';
+            }
+
+            $formatted_data .= '<div class="application-fields" style="margin-top: 15px;">';
+
+            // Handle different form types differently
+            if ($form_type === 'gravity_forms' && isset($app_data['fields']) && is_array($app_data['fields'])) {
+                // Gravity Forms: structured data with label, value, type
+                foreach ($app_data['fields'] as $field_id => $field_data) {
+                    if (is_array($field_data) && isset($field_data['label']) && !empty($field_data['value'])) {
+                        $formatted_data .= $this->format_field_row($field_data['label'], $field_data['value']);
+                    }
+                }
+            } elseif (isset($app_data['fields']) && is_array($app_data['fields'])) {
+                // Contact Form 7 and other forms: flat key-value pairs
+                foreach ($app_data['fields'] as $key => $value) {
+                    // Skip internal/meta fields
+                    if (in_array($key, ['_wpcf7', '_wpcf7_version', '_wpcf7_locale', '_wpcf7_unit_tag', '_wpcf7_container_post', 'job-id', 'g-recaptcha-response'])) {
+                        continue;
                     }
 
-                    $formatted_data .= '</div>';
+                    // Skip empty values
+                    if (empty($value)) {
+                        continue;
+                    }
+
+                    // Format the field label from the field name
+                    $field_label = $this->format_field_label($key);
+                    $formatted_data .= $this->format_field_row($field_label, $value);
+                }
+            } else {
+                // Fallback for unknown structures
+                foreach ($app_data as $key => $value) {
+                    if (in_array($key, ['form_type', 'form_id', 'form_title', 'entry_id', 'fields']) || empty($value)) {
+                        continue;
+                    }
+
+                    $field_label = $this->format_field_label($key);
+                    $formatted_data .= $this->format_field_row($field_label, $value);
                 }
             }
+
+            $formatted_data .= '</div>';
         }
 
-        if (empty($formatted_data)) {
+        if (empty($formatted_data) || strpos($formatted_data, 'field-row') === false) {
             $formatted_data = '<p><em>' . __('No additional application data available.', 'big-bundle') . '</em></p>';
         }
 
@@ -681,5 +716,71 @@ class Application_Handler {
         );
 
         return wp_mail($application->applicant_email, $subject, $message);
+    }
+
+    /**
+     * Format a field label from a field name/key
+     */
+    private function format_field_label($key) {
+        // Remove common prefixes
+        $key = preg_replace('/^(your-|applicant-|user-|job-)/', '', $key);
+
+        // Replace hyphens and underscores with spaces
+        $label = str_replace(['-', '_'], ' ', $key);
+
+        // Capitalize each word
+        $label = ucwords($label);
+
+        // Handle common abbreviations
+        $label = str_replace(['Cv', 'Url', 'Id'], ['CV', 'URL', 'ID'], $label);
+
+        return $label;
+    }
+
+    /**
+     * Format a field row for display
+     */
+    private function format_field_row($label, $value) {
+        $output = '<div class="field-row" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e5e5;">';
+        $output .= '<div class="field-label" style="font-weight: 600; color: #23282d; margin-bottom: 5px;">';
+        $output .= esc_html($label);
+        $output .= '</div>';
+        $output .= '<div class="field-value" style="color: #555; line-height: 1.6;">';
+
+        // Handle different value types
+        if (is_array($value)) {
+            // For arrays, display as a list or comma-separated
+            if (count($value) > 3) {
+                // Display as unordered list for longer arrays
+                $output .= '<ul style="margin: 5px 0; padding-left: 20px;">';
+                foreach ($value as $item) {
+                    if (!empty($item)) {
+                        $output .= '<li>' . esc_html($item) . '</li>';
+                    }
+                }
+                $output .= '</ul>';
+            } else {
+                // Display as comma-separated for shorter arrays
+                $filtered_values = array_filter($value, function($item) { return !empty($item); });
+                $output .= esc_html(implode(', ', $filtered_values));
+            }
+        } elseif (filter_var($value, FILTER_VALIDATE_URL)) {
+            // Display URLs as clickable links
+            $output .= '<a href="' . esc_url($value) . '" target="_blank" style="color: #0073aa;">' . esc_html($value) . '</a>';
+        } elseif (is_email($value)) {
+            // Display emails as mailto links
+            $output .= '<a href="mailto:' . esc_attr($value) . '" style="color: #0073aa;">' . esc_html($value) . '</a>';
+        } elseif (strlen($value) > 100) {
+            // Display long text with line breaks preserved
+            $output .= '<div style="white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px;">' . esc_html($value) . '</div>';
+        } else {
+            // Display short text normally
+            $output .= esc_html($value);
+        }
+
+        $output .= '</div>';
+        $output .= '</div>';
+
+        return $output;
     }
 }
