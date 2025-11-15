@@ -56,7 +56,10 @@ class BB_Simple_Recruitment_Manager {
             'not_found' => 'No job vacancies found.',
             'not_found_in_trash' => 'No job vacancies found in Trash.'
         );
-        
+
+        // Get custom archive slug from settings
+        $archive_slug = get_option('bb_recruitment_archive_slug', 'jobs');
+
         $args = array(
             'labels' => $labels,
             'public' => true,
@@ -65,7 +68,7 @@ class BB_Simple_Recruitment_Manager {
             'show_in_menu' => true,
             'show_in_admin_bar' => true,
             'query_var' => true,
-            'rewrite' => array('slug' => 'jobs'),
+            'rewrite' => array('slug' => $archive_slug),
             'capability_type' => 'post',
             'has_archive' => true,
             'hierarchical' => false,

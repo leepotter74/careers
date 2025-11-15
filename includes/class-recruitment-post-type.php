@@ -57,7 +57,10 @@ class BB_Recruitment_Post_Type {
             'not_found'             => __('No jobs found.', 'recruitment-manager'),
             'not_found_in_trash'    => __('No jobs found in Trash.', 'recruitment-manager'),
         );
-        
+
+        // Get custom archive slug from settings
+        $archive_slug = get_option('bb_recruitment_archive_slug', 'jobs');
+
         $args = array(
             'labels'             => $labels,
             'public'             => true,
@@ -65,7 +68,7 @@ class BB_Recruitment_Post_Type {
             'show_ui'            => true,
             'show_in_menu'       => false, // We'll add it manually to Big Bundle
             'query_var'          => true,
-            'rewrite'            => array('slug' => 'jobs'),
+            'rewrite'            => array('slug' => $archive_slug),
             'capability_type'    => 'post',
             'capabilities'       => array(
                 'edit_post'          => 'edit_posts',
