@@ -60,6 +60,16 @@ class BB_Application_Manager {
             'bb-recruitment-board',
             array($this, 'applicant_board_page')
         );
+
+        // Add Close Job page (hidden from menu)
+        add_submenu_page(
+            null, // No parent = hidden from menu
+            __('Close Job', 'recruitment-manager'),
+            __('Close Job', 'recruitment-manager'),
+            'manage_options',
+            'bb-recruitment-close-job',
+            array($this, 'close_job_page')
+        );
     }
 
     /**
@@ -67,6 +77,13 @@ class BB_Application_Manager {
      */
     public function applicant_board_page() {
         include BB_RECRUITMENT_MANAGER_PLUGIN_DIR . 'admin/applicant-board.php';
+    }
+
+    /**
+     * Close Job confirmation page
+     */
+    public function close_job_page() {
+        include BB_RECRUITMENT_MANAGER_PLUGIN_DIR . 'admin/close-job-page.php';
     }
     
     /**

@@ -31,29 +31,38 @@ class Job_Post_Type {
     private function init_hooks() {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post', array($this, 'save_meta_fields'));
-        
+
         // Load custom templates for frontend display
         add_filter('template_include', array($this, 'load_job_templates'));
-        
+
         // Add custom columns to admin list
         add_filter('manage_job_vacancy_posts_columns', array($this, 'add_admin_columns'));
         add_action('manage_job_vacancy_posts_custom_column', array($this, 'populate_admin_columns'), 10, 2);
-        
+
         // Make columns sortable
         add_filter('manage_edit-job_vacancy_sortable_columns', array($this, 'sortable_columns'));
-        
+
         // Handle sorting
         add_action('pre_get_posts', array($this, 'handle_column_sorting'));
-        
+
         // Add custom post statuses
         add_action('init', array($this, 'register_custom_post_statuses'));
-        
+
         // Flush rewrite rules when post type is registered for the first time
         add_action('init', array($this, 'maybe_flush_rewrite_rules'), 20);
-        
+
         // Filter posts by status in admin
         add_action('restrict_manage_posts', array($this, 'add_status_filter'));
         add_filter('parse_query', array($this, 'filter_by_status'));
+
+        // Add row actions for closing jobs
+        add_filter('post_row_actions', array($this, 'add_close_job_action'), 10, 2);
+
+        // Handle close job action
+        add_action('admin_action_close_job', array($this, 'handle_close_job_action'));
+
+        // AJAX handler for cleanup
+        add_action('wp_ajax_bb_cleanup_closed_jobs', array($this, 'ajax_cleanup_closed_jobs'));
     }
     
     /**
@@ -624,10 +633,154 @@ class Job_Post_Type {
     public function maybe_flush_rewrite_rules() {
         // Check if we need to flush rewrite rules
         $flush_needed = get_option('bb_recruitment_flush_rewrite_rules', false);
-        
+
         if ($flush_needed) {
             flush_rewrite_rules();
             delete_option('bb_recruitment_flush_rewrite_rules');
         }
+    }
+
+    /**
+     * Add "Close Job" action to row actions
+     */
+    public function add_close_job_action($actions, $post) {
+        if ($post->post_type !== 'job_vacancy') {
+            return $actions;
+        }
+
+        // Check if job is already closed
+        $is_closed = get_post_meta($post->ID, '_job_manually_closed', true);
+        $closing_date = get_post_meta($post->ID, '_job_closing_date', true);
+        $is_expired = $closing_date && strtotime($closing_date) < time();
+
+        if (!$is_closed && !$is_expired) {
+            $close_url = wp_nonce_url(
+                admin_url('admin.php?action=close_job&post=' . $post->ID),
+                'close_job_' . $post->ID
+            );
+
+            $actions['close_job'] = sprintf(
+                '<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
+                esc_url($close_url),
+                esc_js(__('Are you sure you want to close this job? You can optionally delete all applications on the next screen.', 'big-bundle')),
+                __('Close Job', 'big-bundle')
+            );
+        } elseif ($is_closed) {
+            $actions['job_closed'] = '<span style="color: #d63638;">' . __('Closed', 'big-bundle') . '</span>';
+        } elseif ($is_expired) {
+            $actions['job_expired'] = '<span style="color: #996800;">' . __('Expired', 'big-bundle') . '</span>';
+        }
+
+        return $actions;
+    }
+
+    /**
+     * Handle close job action
+     */
+    public function handle_close_job_action() {
+        if (!isset($_GET['post']) || !isset($_GET['_wpnonce'])) {
+            wp_die(__('Invalid request.', 'big-bundle'));
+        }
+
+        $post_id = intval($_GET['post']);
+
+        if (!wp_verify_nonce($_GET['_wpnonce'], 'close_job_' . $post_id)) {
+            wp_die(__('Security check failed.', 'big-bundle'));
+        }
+
+        if (!current_user_can('edit_post', $post_id)) {
+            wp_die(__('You do not have permission to close this job.', 'big-bundle'));
+        }
+
+        // Mark job as manually closed
+        update_post_meta($post_id, '_job_manually_closed', true);
+        update_post_meta($post_id, '_job_closed_date', current_time('mysql'));
+
+        // Get application count
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'recruitment_applications';
+        $application_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE job_id = %d",
+            $post_id
+        ));
+
+        // Redirect to confirmation page
+        wp_redirect(add_query_arg(array(
+            'page' => 'bb-recruitment-close-job',
+            'job_id' => $post_id,
+            'app_count' => $application_count
+        ), admin_url('admin.php')));
+        exit;
+    }
+
+    /**
+     * AJAX: Cleanup closed jobs applications
+     */
+    public function ajax_cleanup_closed_jobs() {
+        check_ajax_referer('bb_recruitment_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Permission denied.', 'big-bundle'));
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'recruitment_applications';
+
+        // Get all closed/expired jobs
+        $closed_jobs = array();
+
+        // Get manually closed jobs
+        $manually_closed = get_posts(array(
+            'post_type' => 'job_vacancy',
+            'posts_per_page' => -1,
+            'meta_key' => '_job_manually_closed',
+            'meta_value' => true,
+            'fields' => 'ids'
+        ));
+
+        // Get expired jobs
+        $expired_jobs = get_posts(array(
+            'post_type' => 'job_vacancy',
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => '_job_closing_date',
+                    'value' => date('Y-m-d'),
+                    'compare' => '<',
+                    'type' => 'DATE'
+                )
+            ),
+            'fields' => 'ids'
+        ));
+
+        $closed_jobs = array_unique(array_merge($manually_closed, $expired_jobs));
+
+        if (empty($closed_jobs)) {
+            wp_send_json_success(array(
+                'message' => __('No closed jobs found.', 'big-bundle'),
+                'deleted' => 0
+            ));
+        }
+
+        // Delete applications for closed jobs
+        $placeholders = implode(',', array_fill(0, count($closed_jobs), '%d'));
+        $deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table_name WHERE job_id IN ($placeholders)",
+            $closed_jobs
+        ));
+
+        wp_send_json_success(array(
+            'message' => sprintf(
+                _n(
+                    '%d application deleted from closed jobs.',
+                    '%d applications deleted from closed jobs.',
+                    $deleted,
+                    'big-bundle'
+                ),
+                $deleted
+            ),
+            'deleted' => $deleted,
+            'jobs_cleaned' => count($closed_jobs)
+        ));
     }
 }

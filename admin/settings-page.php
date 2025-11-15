@@ -621,20 +621,71 @@ foreach ($default_fields as $field => $defaults) {
                 
                 <div class="bb-cleanup-tools">
                     <h3><?php _e('Data Cleanup Tools', 'big-bundle'); ?></h3>
-                    <p class="description"><?php _e('Tools for managing and cleaning up application data.', 'big-bundle'); ?></p>
-                    
+                    <p class="description"><?php _e('Tools for managing and cleaning up application data from closed and expired jobs.', 'big-bundle'); ?></p>
+
+                    <div id="cleanup-result" style="display: none; margin: 15px 0;"></div>
+
                     <div class="bb-cleanup-actions">
-                        <button type="button" class="button" onclick="alert('Feature coming soon')">
-                            <?php _e('Delete Expired Applications', 'big-bundle'); ?>
+                        <button type="button" id="cleanup-closed-jobs" class="button button-large">
+                            <span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
+                            <?php _e('Delete Applications from Closed Jobs', 'big-bundle'); ?>
                         </button>
-                        <button type="button" class="button" onclick="alert('Feature coming soon')">
-                            <?php _e('Export All Data', 'big-bundle'); ?>
-                        </button>
-                        <button type="button" class="button button-link-delete" onclick="alert('Feature coming soon')">
-                            <?php _e('Delete All Data', 'big-bundle'); ?>
-                        </button>
+                        <p class="description">
+                            <?php _e('Permanently delete all applications from jobs that have been manually closed or have passed their closing date. This will free up database space.', 'big-bundle'); ?>
+                        </p>
                     </div>
                 </div>
+
+                <script>
+                jQuery(document).ready(function($) {
+                    $('#cleanup-closed-jobs').on('click', function() {
+                        if (!confirm('<?php echo esc_js(__('Are you sure you want to delete all applications from closed/expired jobs? This action cannot be undone!', 'big-bundle')); ?>')) {
+                            return;
+                        }
+
+                        var $button = $(this);
+                        var $result = $('#cleanup-result');
+
+                        $button.prop('disabled', true).text('<?php _e('Processing...', 'big-bundle'); ?>');
+                        $result.hide();
+
+                        $.ajax({
+                            url: ajaxurl,
+                            type: 'POST',
+                            data: {
+                                action: 'bb_cleanup_closed_jobs',
+                                nonce: '<?php echo wp_create_nonce('bb_recruitment_nonce'); ?>'
+                            },
+                            success: function(response) {
+                                $button.prop('disabled', false).html('<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span> <?php _e('Delete Applications from Closed Jobs', 'big-bundle'); ?>');
+
+                                if (response.success) {
+                                    $result
+                                        .removeClass('notice-error')
+                                        .addClass('notice notice-success')
+                                        .html('<p><strong>' + response.data.message + '</strong></p>' +
+                                              '<p><?php _e('Jobs cleaned:', 'big-bundle'); ?> ' + response.data.jobs_cleaned + '</p>')
+                                        .slideDown();
+                                } else {
+                                    $result
+                                        .removeClass('notice-success')
+                                        .addClass('notice notice-error')
+                                        .html('<p>' + (response.data || '<?php _e('An error occurred.', 'big-bundle'); ?>') + '</p>')
+                                        .slideDown();
+                                }
+                            },
+                            error: function() {
+                                $button.prop('disabled', false).html('<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span> <?php _e('Delete Applications from Closed Jobs', 'big-bundle'); ?>');
+                                $result
+                                    .removeClass('notice-success')
+                                    .addClass('notice notice-error')
+                                    .html('<p><?php _e('Network error occurred.', 'big-bundle'); ?></p>')
+                                    .slideDown();
+                            }
+                        });
+                    });
+                });
+                </script>
             </div>
         </div>
         
