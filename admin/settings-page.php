@@ -118,10 +118,25 @@ foreach ($default_fields as $field => $defaults) {
 }
 
 ?>
-<div class="wrap bb-recruitment-settings">
-    <h1><?php _e('Recruitment Manager Settings', 'big-bundle'); ?></h1>
-    
-    <form method="post" action="">
+<div class="wrap big-bundle-admin">
+    <div class="big-bundle-header">
+        <div class="big-bundle-header-content">
+            <div class="big-bundle-logo">
+                <?php echo Big_Bundle_Admin_Interface::get_instance()->get_big_bundle_svg(); ?>
+                <h1><?php _e('Recruitment Settings', 'big-bundle'); ?></h1>
+            </div>
+            <div class="big-bundle-actions">
+                <button type="submit" form="bb-recruitment-settings-form" class="button button-primary">
+                    <?php _e('Save Settings', 'big-bundle'); ?>
+                </button>
+            </div>
+        </div>
+        <p class="big-bundle-tagline"><?php _e('Configure recruitment manager email templates, notifications, and application settings', 'big-bundle'); ?></p>
+    </div>
+
+    <div class="big-bundle-main-content">
+
+    <form method="post" action="" id="bb-recruitment-settings-form">
         <?php wp_nonce_field('bb_recruitment_settings', 'bb_recruitment_settings_nonce'); ?>
         
         <div class="bb-settings-tabs">
@@ -693,7 +708,7 @@ foreach ($default_fields as $field => $defaults) {
             <input type="submit" name="submit" id="submit" class="button-primary" value="<?php _e('Save Settings', 'big-bundle'); ?>" />
         </p>
     </form>
-</div>
+    </div><!-- .big-bundle-main-content -->
 
 <script>
 jQuery(document).ready(function($) {
@@ -1179,3 +1194,4 @@ jQuery(document).ready(function($) {
     }
 }
 </style>
+</div><!-- .wrap -->
